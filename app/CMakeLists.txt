@@ -19,7 +19,7 @@ add_library( # Sets the name of the library.
              # Provides a relative path to your source file(s).
              src/main/cpp/native-lib.cpp )
 
-add_library( elfhook-lib
+add_library( elfhook
              SHARED
 
              src/main/cpp/elfhook/elfhook_utils.cpp
@@ -47,9 +47,9 @@ target_link_libraries( # Specifies the target library.
 
                        # Links the target library to the log library
                        # included in the NDK.
-                       ${log-lib} elfhook-lib)
+                       ${log-lib} elfhook)
 
-target_link_libraries(elfhook-lib
+target_link_libraries(elfhook
                       ${log-lib})
 
 
