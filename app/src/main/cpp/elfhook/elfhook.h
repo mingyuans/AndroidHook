@@ -17,6 +17,9 @@ int elfhook_p(const char *so_name,const char *symbol, void *new_func_addr,void *
 
 /**
  * Do elf hook by link view;
+ *
+ * see more: http://ele7enxxh.com/Android-Shared-Library-Hook-With-GOT.html
+ *
  * @param so_name target so
  * @param symbol function_name
  * @param new_func_addr new_function_address
