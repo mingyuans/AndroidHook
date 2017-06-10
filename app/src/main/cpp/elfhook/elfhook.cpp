@@ -7,14 +7,132 @@
 #include "elfhook_utils.h"
 #include "elf_log.h"
 
-int elfhook_p(const char *so_name,const char *symbol, void *new_func_addr,void **origin_func_addr_ptr) {
+static inline Elf32_Phdr* find_segment_by_type(Elf32_Phdr * phdr_base, const Elf32_Word phnum, const Elf32_Word ph_type) {
+    Elf32_Phdr *target = NULL;
+    for (int i = 0; i < phnum; ++i) {
+        if ((phdr_base + i)->p_type == ph_type) {
+            target = phdr_base + i;
+            break;
+        }
+    }
+    return target;
+}
 
+static inline Elf32_Addr * find_symbol_offset(const char *symbol,
+                                              Elf32_Rel *rel_base_ptr,Elf32_Word size,
+                                              const char *strtab_base,Elf32_Sym *symtab_ptr) {
+    Elf32_Rel *each_rel = rel_base_ptr;
+    for (int i = 0; i < size; i++,each_rel++) {
+        uint16_t ndx = ELF32_R_SYM(each_rel->r_info);
+        LOGI("ndx = %d, str = %s", ndx, strtab_base + symtab_ptr[ndx].st_name);
+        if (strcmp(strtab_base + symtab_ptr[ndx].st_name, symbol) == 0) {
+            LOGI("符号%s在got表的偏移地址为: 0x%x", symbol, each_rel->r_offset);
+            return  &each_rel->r_offset;
+        }
+    }
+    return NULL;
 }
 
 
-inline void read_data_form_fd(int fd, uint32_t seek,void * ptr, size_t size) {
+int elfhook_p(const char *so_name,const char *symbol, void *new_func_addr,void **origin_func_addr_ptr) {
+    uint8_t * elf_base_address = (uint8_t *) find_so_base(so_name, NULL,0);
+
+    Elf32_Ehdr *endr = reinterpret_cast<Elf32_Ehdr*>(elf_base_address);
+
+    Elf32_Phdr *phdr_base = reinterpret_cast<Elf32_Phdr*>(elf_base_address + endr->e_phoff);
+
+    Elf32_Phdr *dynamic_phdr = find_segment_by_type(phdr_base,endr->e_phnum,PT_DYNAMIC);
+    Elf32_Dyn *dyn_ptr_base = reinterpret_cast<Elf32_Dyn *>(elf_base_address + dynamic_phdr->p_vaddr);
+    Elf32_Word dynamic_size = dynamic_phdr -> p_memsz;
+
+    Elf32_Word dyn_count = dynamic_size / sizeof(Elf32_Dyn);
+
+    Elf32_Sym *symtab_ptr = NULL;
+    const char * strtab_base = NULL;
+    Elf32_Rel *rel_dyn_ptr_base = NULL;
+    Elf32_Word rel_dyn_count;
+    Elf32_Rel *rel_plt_base = NULL;
+    Elf32_Word  rel_plt_count;
+
+    Elf32_Word current_find_count = 0;
+    Elf32_Dyn * each_dyn = dyn_ptr_base;
+    for (int i = 0; i < dyn_count; ++i,++each_dyn) {
+        switch (each_dyn->d_tag) {
+            case DT_SYMTAB:
+                symtab_ptr = reinterpret_cast<Elf32_Sym *>(elf_base_address + each_dyn->d_un.d_ptr);
+                current_find_count ++;
+                break;
+            case DT_STRTAB:
+                current_find_count ++;
+                strtab_base = reinterpret_cast<const char *>(elf_base_address + each_dyn->d_un.d_ptr);
+                break;
+            case DT_REL:
+                current_find_count ++;
+                rel_dyn_ptr_base = reinterpret_cast<Elf32_Rel *>(elf_base_address + each_dyn->d_un.d_ptr);
+                break;
+            case DT_RELASZ:
+                current_find_count ++;
+                rel_dyn_count = each_dyn->d_un.d_ptr / sizeof(Elf32_Rel);
+                break;
+            case DT_JMPREL:
+                current_find_count ++;
+                rel_plt_base = reinterpret_cast<Elf32_Rel *>(elf_base_address + each_dyn->d_un.d_ptr);
+                break;
+            case DT_PLTRELSZ:
+                current_find_count ++;
+                rel_plt_count = each_dyn->d_un.d_ptr / sizeof(Elf32_Rel);
+                break;
+            default:
+                break;
+        }
+        if (current_find_count == 5) {
+            break;
+        }
+    }
+
+    Elf32_Addr *offset = find_symbol_offset(symbol, rel_plt_base, rel_plt_count,
+                                            strtab_base,symtab_ptr);
+    if (offset == NULL) {
+        LOGI(".rel.plt 查找符号失败，在 .rel.dyn 尝试查找...");
+        offset = find_symbol_offset(symbol,rel_dyn_ptr_base,rel_dyn_count,
+                                    strtab_base,symtab_ptr);
+    }
+
+    if (offset == NULL) {
+        LOGE("获取 Offset 失败！！！");
+        return 0;
+    }
+
+    LOGI("符号获取成功，进行符号地址修改...");
+    void * function_addr_ptr = (elf_base_address + *offset);
+    return replace_function((void **) function_addr_ptr,
+                            new_func_addr, origin_func_addr_ptr);
+}
+
+
+static inline void read_data_form_fd(int fd, uint32_t seek,void * ptr, size_t size) {
     lseek(fd, seek, SEEK_SET);
     read(fd, ptr, size);
+}
+
+static inline Elf32_Word *find_symbol_offset(int fd,const char *symbol,
+                                             Elf32_Rel *rel_base_ptr,Elf32_Word size,
+                                             const char *strtab_base,Elf32_Sym *symtab_ptr) {
+
+    Elf32_Rel *each_rel = rel_base_ptr;
+    for (uint16_t i = 0; i < size; i++) {
+        uint16_t ndx = ELF32_R_SYM(each_rel->r_info);
+        LOGI("ndx = %d, str = %s", ndx, strtab_base + symtab_ptr[ndx].st_name);
+        if (strcmp(strtab_base + symtab_ptr[ndx].st_name, symbol) == 0) {
+            LOGI("符号%s在got表的偏移地址为: 0x%x", symbol, each_rel->r_offset);
+            return &each_rel->r_offset;
+        }
+        if (read(fd, each_rel, sizeof(Elf32_Rel)) != sizeof(Elf32_Rel)) {
+            LOGI("获取符号%s的重定位信息失败", symbol);
+            return NULL;
+        }
+    }
+    return NULL;
 }
 
 int elfhook_s(const char *so_name,const char *symbol, void *new_func_addr,void **origin_func_addr_ptr) {
@@ -58,6 +176,7 @@ int elfhook_s(const char *so_name,const char *symbol, void *new_func_addr,void *
     Elf32_Shdr *relplt_shdr = (Elf32_Shdr *) malloc(sizeof(Elf32_Shdr));
     Elf32_Shdr *dynsym_shdr = (Elf32_Shdr *) malloc(sizeof(Elf32_Shdr));
     Elf32_Shdr *dynstr_shdr = (Elf32_Shdr *) malloc(sizeof(Elf32_Shdr));
+    Elf32_Shdr *reldyn_shdr = (Elf32_Shdr *) malloc(sizeof(Elf32_Shdr));
     for (uint16_t i = 0; i < shnum; ++i) {
         read(fd, shdr, sizeof(Elf32_Shdr));
         sh_name = shstrtab + shdr->sh_name;
@@ -67,6 +186,9 @@ int elfhook_s(const char *so_name,const char *symbol, void *new_func_addr,void *
             memcpy(dynstr_shdr, shdr, sizeof(Elf32_Shdr));
         else if (strcmp(sh_name, ".rel.plt") == 0)
             memcpy(relplt_shdr, shdr, sizeof(Elf32_Shdr));
+        else if (strcmp(sh_name,".rel.dyn") == 0) {
+            memcpy(reldyn_shdr,shdr, sizeof(Elf32_Shdr));
+        }
     }
 
     //读取字符表
@@ -89,20 +211,22 @@ int elfhook_s(const char *so_name,const char *symbol, void *new_func_addr,void *
         return 0;
 
     LOGI("ELF 表准备完成, 开始查找符号%s的 got 表重定位地址...",symbol);
+    Elf32_Addr *offset = find_symbol_offset(fd,symbol,rel_ent,
+                                            relplt_shdr->sh_size / sizeof(Elf32_Rel),
+                                            dynstr,dynsymtab);
 
-    Elf32_Addr *offset = 0;
-    for (uint16_t i = 0; i < relplt_shdr->sh_size / sizeof(Elf32_Rel); i++) {
-        uint16_t ndx = ELF32_R_SYM(rel_ent->r_info);
-        LOGI("ndx = %d, str = %s", ndx, dynstr + dynsymtab[ndx].st_name);
-        if (strcmp(dynstr + dynsymtab[ndx].st_name, symbol) == 0) {
-            LOGI("符号%s在got表的偏移地址为: 0x%x", symbol, rel_ent->r_offset);
-            offset = &rel_ent->r_offset;
-            break;
-        }
-        if (read(fd, rel_ent, sizeof(Elf32_Rel)) != sizeof(Elf32_Rel)) {
-            LOGI("获取符号%s的重定位信息失败", symbol);
+    if (offset == NULL) {
+        LOGI(".rel.plt 查找符号失败，在 .rel.dyn 尝试查找...");
+
+        //读取重定向变量表
+        Elf32_Rel *rel_dyn = (Elf32_Rel *) malloc(sizeof(Elf32_Rel));
+        lseek(fd, reldyn_shdr->sh_offset, SEEK_SET);
+        if (read(fd, rel_dyn, sizeof(Elf32_Rel)) != sizeof(Elf32_Rel))
             return 0;
-        }
+
+        offset = find_symbol_offset(fd,symbol,rel_ent,
+                                    relplt_shdr->sh_size / sizeof(Elf32_Rel),
+                                    dynstr,dynsymtab);
     }
 
     if (offset == 0) {

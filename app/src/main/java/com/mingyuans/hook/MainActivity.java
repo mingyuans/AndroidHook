@@ -22,6 +22,7 @@ public class MainActivity extends AppCompatActivity {
         tv.setText(stringFromJNI());
 
         doElfHookByLinkView();
+        doElfHookByExecutableView();
     }
 
     /**
@@ -31,5 +32,7 @@ public class MainActivity extends AppCompatActivity {
     public native String stringFromJNI();
 
     private native int doElfHookByLinkView();
+
+    private native int doElfHookByExecutableView();
 
 }

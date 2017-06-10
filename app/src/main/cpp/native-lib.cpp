@@ -44,4 +44,27 @@ Java_com_mingyuans_hook_MainActivity_doElfHookByLinkView(JNIEnv *env, jobject in
         __android_log_print(android_LogPriority::ANDROID_LOG_INFO, "androidHook", "%s", "domain ips: null");
     }
     return result;
+}extern "C"
+JNIEXPORT jint JNICALL
+Java_com_mingyuans_hook_MainActivity_doElfHookByExecutableView(JNIEnv *env, jobject instance) {
+    struct hostent	*(*system_gethostbyname)(const char *) = NULL;
+    size_t  result = elfhook_p("native-lib", "gethostbyname", (void *) my_gethostbyname,
+                               (void **) &system_gethostbyname);
+
+    print_gethostbyname();
+
+    if (system_gethostbyname != NULL) {
+        struct hostent * hostent_ptr = system_gethostbyname("www.baidu.com");
+        if (hostent_ptr != NULL) {
+            __android_log_print(android_LogPriority::ANDROID_LOG_INFO, "androidHook", "domain ips: %s",
+                                inet_ntoa(*((struct in_addr *) hostent_ptr->h_addr)));
+        } else {
+            __android_log_print(android_LogPriority::ANDROID_LOG_INFO, "androidHook", "%s", "domain ips: null");
+        }
+    } else {
+        __android_log_print(android_LogPriority::ANDROID_LOG_INFO,"androidHook","system gethostbyname is null!");
+    }
+    return result;
+
+
 }
