@@ -85,7 +85,8 @@ void *find_so_base(const char *soname, char *path, int path_size) {
     void *base = 0;
 
     while (fgets(line, sizeof(line), fd) != NULL) {
-        if (soname == NULL || strstr(line, soname)) {
+        //检查了下，该项特点是会具有执行权限;
+        if (soname == NULL || (strstr(line, soname) && strstr(line,"xp"))) {
             if (path) {
                 substring(line,'/',path,path_size);
             }
