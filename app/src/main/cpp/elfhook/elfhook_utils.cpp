@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/syscall.h>
+#include "elf_log.h"
 
 
 #define PAGE_START(addr) (~(getpagesize() - 1) & (addr))
@@ -33,6 +34,7 @@ static int clear_cache(void *addr, size_t len){
  */
 int replace_function(void **fun_addr_ptr, void *new_func_addr, void **origin_func_addr_ptr) {
     if (*fun_addr_ptr == new_func_addr) {
+        LOGI("The function has replaced before!");
         return 1;
     }
 
@@ -40,8 +42,9 @@ int replace_function(void **fun_addr_ptr, void *new_func_addr, void **origin_fun
         *origin_func_addr_ptr = *fun_addr_ptr;
     }
 
-    //需要先修改该内存端的访问权限，跟 Java 反射中setAccessible 有点像;
-    if (modify_memory_access(fun_addr_ptr, PROT_EXEC | PROT_READ | PROT_WRITE)) {
+    //需要先修改该内存端的访问权限，跟 Java 反射中setAccessible 有点像; PROT_EXEC | PROT_READ |
+    if (modify_memory_access(fun_addr_ptr,  PROT_READ | PROT_WRITE)) {
+        LOGE("Modify memory access failed! address: %x, reason: %d",fun_addr_ptr,errno);
         return 0;
     }
 
