@@ -5,19 +5,6 @@
 #include <android/log.h>
 #include "elfhook/elfhook.h"
 
-#define ELFHOOK_DEBUG 1
-
-extern "C"
-JNIEXPORT jstring
-
-JNICALL
-Java_com_mingyuans_hook_MainActivity_stringFromJNI(
-        JNIEnv *env,
-        jobject /* this */) {
-    std::string hello = "Hello from C++";
-    return env->NewStringUTF(hello.c_str());
-}
-
 void print_gethostbyname() {
     gethostbyname("www.mingyuans.me");
 }
@@ -44,7 +31,10 @@ Java_com_mingyuans_hook_MainActivity_doElfHookByLinkView(JNIEnv *env, jobject in
         __android_log_print(android_LogPriority::ANDROID_LOG_INFO, "androidHook", "%s", "domain ips: null");
     }
     return result;
-}extern "C"
+}
+
+
+extern "C"
 JNIEXPORT jint JNICALL
 Java_com_mingyuans_hook_MainActivity_doElfHookByExecutableView(JNIEnv *env, jobject instance) {
     struct hostent	*(*system_gethostbyname)(const char *) = NULL;
@@ -67,4 +57,27 @@ Java_com_mingyuans_hook_MainActivity_doElfHookByExecutableView(JNIEnv *env, jobj
     return result;
 
 
+}
+
+int (*global_system_getaddrinfo)(const char *, const char *, const struct addrinfo *, struct addrinfo **) = NULL;
+
+int my_getaddrinfo(const char *hostname, const char *service, const struct addrinfo * hints, struct addrinfo **result) {
+    __android_log_print(android_LogPriority::ANDROID_LOG_INFO,"androidHook","hostname:%s",hostname);
+    if (global_system_getaddrinfo != NULL) {
+        __android_log_print(android_LogPriority::ANDROID_LOG_INFO,"androidHook","do system_getaddrinfo");
+        return global_system_getaddrinfo(hostname,service,hints,result);
+    }
+    return 0;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_mingyuans_hook_MainActivity_hookWebViewDns(JNIEnv *env, jobject instance) {
+    int (*system_getaddrinfo)(const char *, const char *, const struct addrinfo *, struct addrinfo **) = NULL;
+    int hookResultCode = elfhook_p("WebViewGoogle.apk","getaddrinfo", (void *) my_getaddrinfo,
+              (void **) &system_getaddrinfo);
+    global_system_getaddrinfo = system_getaddrinfo;
+    __android_log_print(android_LogPriority::ANDROID_LOG_INFO,"androidHook","system_getaddirinfo: 0x%x",system_getaddrinfo);
+
+    return hookResultCode;
 }

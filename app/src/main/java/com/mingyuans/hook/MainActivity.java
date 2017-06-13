@@ -2,6 +2,8 @@ package com.mingyuans.hook;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
 import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity {
@@ -17,22 +19,24 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Example of a call to a native method
-        TextView tv = (TextView) findViewById(R.id.sample_text);
-        tv.setText(stringFromJNI());
-
         doElfHookByLinkView();
         doElfHookByExecutableView();
-    }
 
-    /**
-     * A native method that is implemented by the 'native-lib' native library,
-     * which is packaged with this application.
-     */
-    public native String stringFromJNI();
+        hookWebViewDns();
+
+        WebView webView = (WebView) findViewById(R.id.wv_main);
+        webView.getSettings().setAppCacheEnabled(false);
+        webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
+        webView.getSettings().setJavaScriptEnabled(true);
+
+        webView.loadUrl("https://www.baidu.com");
+
+    }
 
     private native int doElfHookByLinkView();
 
     private native int doElfHookByExecutableView();
+
+    private native int hookWebViewDns();
 
 }
