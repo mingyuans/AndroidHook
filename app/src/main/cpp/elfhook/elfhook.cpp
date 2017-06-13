@@ -24,6 +24,7 @@ static inline Elf32_Addr * find_symbol_offset(const char *symbol,
     Elf32_Rel *each_rel = rel_base_ptr;
     for (int i = 0; i < size; i++,each_rel++) {
         uint16_t ndx = ELF32_R_SYM(each_rel->r_info);
+        if (ndx == 0) continue;
         LOGI("ndx = %d, str = %s", ndx, strtab_base + symtab_ptr[ndx].st_name);
         if (strcmp(strtab_base + symtab_ptr[ndx].st_name, symbol) == 0) {
             LOGI("符号%s在got表的偏移地址为: 0x%x", symbol, each_rel->r_offset);
@@ -122,10 +123,12 @@ static inline Elf32_Word *find_symbol_offset(int fd,const char *symbol,
     Elf32_Rel *each_rel = rel_base_ptr;
     for (uint16_t i = 0; i < size; i++) {
         uint16_t ndx = ELF32_R_SYM(each_rel->r_info);
-        LOGI("ndx = %d, str = %s", ndx, strtab_base + symtab_ptr[ndx].st_name);
-        if (strcmp(strtab_base + symtab_ptr[ndx].st_name, symbol) == 0) {
-            LOGI("符号%s在got表的偏移地址为: 0x%x", symbol, each_rel->r_offset);
-            return &each_rel->r_offset;
+        if (ndx > 0) {
+            LOGI("ndx = %d, str = %s", ndx, strtab_base + symtab_ptr[ndx].st_name);
+            if (strcmp(strtab_base + symtab_ptr[ndx].st_name, symbol) == 0) {
+                LOGI("符号%s在got表的偏移地址为: 0x%x", symbol, each_rel->r_offset);
+                return &each_rel->r_offset;
+            }
         }
         if (read(fd, each_rel, sizeof(Elf32_Rel)) != sizeof(Elf32_Rel)) {
             LOGI("获取符号%s的重定位信息失败", symbol);
