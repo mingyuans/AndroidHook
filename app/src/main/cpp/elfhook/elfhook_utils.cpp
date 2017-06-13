@@ -38,8 +38,10 @@ int replace_function(void **fun_addr_ptr, void *new_func_addr, void **origin_fun
         return 1;
     }
 
-    if (origin_func_addr_ptr != NULL) {
+    if (origin_func_addr_ptr != NULL && !*origin_func_addr_ptr) {
         *origin_func_addr_ptr = *fun_addr_ptr;
+    } else {
+        LOGW("origin_func_addr_ptr == NULL or content != NULL ")
     }
 
     //需要先修改该内存端的访问权限，跟 Java 反射中setAccessible 有点像; PROT_EXEC | PROT_READ |
