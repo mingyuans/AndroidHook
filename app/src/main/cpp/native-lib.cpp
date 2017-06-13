@@ -18,7 +18,7 @@ extern "C"
 JNIEXPORT jint JNICALL
 Java_com_mingyuans_hook_MainActivity_doElfHookByLinkView(JNIEnv *env, jobject instance) {
     struct hostent	*(*system_gethostbyname)(const char *) = NULL;
-    size_t  result = elfhook_s("native-lib", "gethostbyname", (void *) my_gethostbyname,
+    uint  result = elfhook_s("native-lib", "gethostbyname", (void *) my_gethostbyname,
                                (void **) &system_gethostbyname);
 
     print_gethostbyname();
@@ -30,6 +30,12 @@ Java_com_mingyuans_hook_MainActivity_doElfHookByLinkView(JNIEnv *env, jobject in
     } else {
         __android_log_print(android_LogPriority::ANDROID_LOG_INFO, "androidHook", "%s", "domain ips: null");
     }
+
+    if (result != 0) {
+        elfhook_stop("native-lib", result, (void **) &system_gethostbyname);
+    }
+    print_gethostbyname();
+
     return result;
 }
 

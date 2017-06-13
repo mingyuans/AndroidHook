@@ -30,4 +30,12 @@ uint elfhook_p(const char *so_name,const char *symbol, void *new_func_addr,void 
  */
 uint elfhook_s(const char *so_name,const char *symbol, void *new_func_addr,void **origin_func_addr_ptr);
 
+/**
+ *
+ * @param symbol_offset elfhook_s or elfhook_p return;
+ * @param origin_func_addr_ptr
+ * @return
+ */
+uint elfhook_stop(uint symbol_offset,void **origin_func_addr_ptr);
+
 #endif //ANDROIDHOOK_ELFHOOK_H

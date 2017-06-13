@@ -244,3 +244,8 @@ uint elfhook_s(const char *so_name,const char *symbol, void *new_func_addr,void 
     return replace_function((void **) function_addr_ptr,
                      new_func_addr, origin_func_addr_ptr);
 }
+
+
+uint elfhook_stop(uint symbol_offset,void **origin_func_addr_ptr) {
+    return replace_function(reinterpret_cast<void **>(symbol_offset),*origin_func_addr_ptr,NULL);
+}
