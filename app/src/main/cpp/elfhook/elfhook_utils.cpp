@@ -30,9 +30,9 @@ static int clear_cache(void *addr, size_t len){
  * @param fun_addr_ptr
  * @param new_func_addr
  * @param origin_func_addr_ptr
- * @return 1--success, 0--fail
+ * @return 0--fail else symbol offset at .got
  */
-int replace_function(void **fun_addr_ptr, void *new_func_addr, void **origin_func_addr_ptr) {
+uint replace_function(void **fun_addr_ptr, void *new_func_addr, void **origin_func_addr_ptr) {
     if (*fun_addr_ptr == new_func_addr) {
         LOGI("The function has replaced before!");
         return 1;
@@ -52,7 +52,7 @@ int replace_function(void **fun_addr_ptr, void *new_func_addr, void **origin_fun
 
     *fun_addr_ptr = new_func_addr;
     clear_cache(fun_addr_ptr, getpagesize());
-    return 1;
+    return (uint) fun_addr_ptr;
 }
 
 void substring(char * str, char start_char,char *buf,int size) {

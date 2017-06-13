@@ -13,9 +13,9 @@
  * @param symbol function_name
  * @param new_func_addr new_function_address
  * @param origin_func_addr_ptr  origin function address
- * @return 1--success , 0--fail
+ * @return 0--fail else symbol offset at .got
  */
-int elfhook_p(const char *so_name,const char *symbol, void *new_func_addr,void **origin_func_addr_ptr);
+uint elfhook_p(const char *so_name,const char *symbol, void *new_func_addr,void **origin_func_addr_ptr);
 
 /**
  * Do elf hook by link view;
@@ -26,8 +26,8 @@ int elfhook_p(const char *so_name,const char *symbol, void *new_func_addr,void *
  * @param symbol function_name
  * @param new_func_addr new_function_address
  * @param origin_func_addr_ptr  origin function address
- * @return 1--success , 0--fail
+ * @return 0--fail else symbol offset at .got
  */
-int elfhook_s(const char *so_name,const char *symbol, void *new_func_addr,void **origin_func_addr_ptr);
+uint elfhook_s(const char *so_name,const char *symbol, void *new_func_addr,void **origin_func_addr_ptr);
 
 #endif //ANDROIDHOOK_ELFHOOK_H

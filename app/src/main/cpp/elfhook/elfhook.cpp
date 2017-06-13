@@ -36,7 +36,7 @@ static inline Elf32_Addr * find_symbol_offset(const char *symbol,
 }
 
 
-int elfhook_p(const char *so_name,const char *symbol, void *new_func_addr,void **origin_func_addr_ptr) {
+uint elfhook_p(const char *so_name,const char *symbol, void *new_func_addr,void **origin_func_addr_ptr) {
     uint8_t * elf_base_address = (uint8_t *) find_so_base(so_name, NULL,0);
 
     Elf32_Ehdr *endr = reinterpret_cast<Elf32_Ehdr*>(elf_base_address);
@@ -140,7 +140,7 @@ static inline Elf32_Word *find_symbol_offset(int fd,const char *symbol,
     return NULL;
 }
 
-int elfhook_s(const char *so_name,const char *symbol, void *new_func_addr,void **origin_func_addr_ptr) {
+uint elfhook_s(const char *so_name,const char *symbol, void *new_func_addr,void **origin_func_addr_ptr) {
     char so_path[256] = {0};
     uint8_t * elf_base_address = (uint8_t *) find_so_base(so_name, so_path, sizeof(so_path));
 
