@@ -22,11 +22,12 @@ static inline Elf32_Addr * find_symbol_offset(const char *symbol,
                                               Elf32_Rel *rel_base_ptr,Elf32_Word size,
                                               const char *strtab_base,Elf32_Sym *symtab_ptr) {
     Elf32_Rel *each_rel = rel_base_ptr;
+    size_t  symbol_length = strlen(symbol);
     for (int i = 0; i < size; i++,each_rel++) {
         uint16_t ndx = ELF32_R_SYM(each_rel->r_info);
         if (ndx == 0) continue;
         LOGI("ndx = %d, str = %s", ndx, strtab_base + symtab_ptr[ndx].st_name);
-        if (strcmp(strtab_base + symtab_ptr[ndx].st_name, symbol) == 0) {
+        if (memcmp(strtab_base + symtab_ptr[ndx].st_name, symbol,symbol_length) == 0) {
             LOGI("符号%s在got表的偏移地址为: 0x%x", symbol, each_rel->r_offset);
             return  &each_rel->r_offset;
         }
@@ -120,12 +121,13 @@ static inline Elf32_Word *find_symbol_offset(int fd,const char *symbol,
                                              Elf32_Rel *rel_base_ptr,Elf32_Word size,
                                              const char *strtab_base,Elf32_Sym *symtab_ptr) {
 
+    size_t symbol_length = strlen(symbol);
     Elf32_Rel *each_rel = rel_base_ptr;
     for (uint16_t i = 0; i < size; i++) {
         uint16_t ndx = ELF32_R_SYM(each_rel->r_info);
         if (ndx > 0) {
             LOGI("ndx = %d, str = %s", ndx, strtab_base + symtab_ptr[ndx].st_name);
-            if (strcmp(strtab_base + symtab_ptr[ndx].st_name, symbol) == 0) {
+            if (memcmp(strtab_base + symtab_ptr[ndx].st_name, symbol,symbol_length) == 0) {
                 LOGI("符号%s在got表的偏移地址为: 0x%x", symbol, each_rel->r_offset);
                 return &each_rel->r_offset;
             }
