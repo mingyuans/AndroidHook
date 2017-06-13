@@ -5,6 +5,8 @@
 #ifndef ANDROIDHOOK_ELFHOOK_H
 #define ANDROIDHOOK_ELFHOOK_H
 
+#define ELFHOOK_DEBUG 1
+
 /**
  * Do elf hook by exec view
  * @param so_name target so

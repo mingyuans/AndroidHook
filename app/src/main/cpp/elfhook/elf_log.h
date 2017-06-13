@@ -7,8 +7,6 @@
 #ifndef ANDROIDHOOK_ELF_LOG_H
 #define ANDROIDHOOK_ELF_LOG_H
 
-#define ELFHOOK_DEBUG 1
-
 #ifndef ELFHOOK_TAG
 #define ELFHOOK_TAG "elfHook"
 #endif
