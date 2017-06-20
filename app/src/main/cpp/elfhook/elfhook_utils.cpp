@@ -41,7 +41,7 @@ uint replace_function(void **fun_addr_ptr, void *new_func_addr, void **origin_fu
     if (origin_func_addr_ptr != NULL && !*origin_func_addr_ptr) {
         *origin_func_addr_ptr = *fun_addr_ptr;
     } else {
-        LOGW("origin_func_addr_ptr == NULL or content != NULL ")
+        LOGW("origin_func_addr_ptr == NULL or content != NULL ");
     }
 
     //需要先修改该内存端的访问权限，跟 Java 反射中setAccessible 有点像; PROT_EXEC | PROT_READ |
@@ -81,6 +81,14 @@ void substring(char * str, char start_char,char *buf,int size) {
     buf[current_length] = '\0';
 }
 
+static inline bool is_line_end_with_so(const char *string, const char *suffix) {
+    int str_len = strlen(string);
+    int suffix_len = strlen(suffix);
+    return str_len >= suffix_len
+           //line 本身有 \n 的结尾，这里加载该字符位移
+           && (0 == memcmp(string + (str_len-suffix_len-1), suffix,suffix_len));
+}
+
 /**
  * 查找soname的基址，如果为NULL，则为当前进程基址
  */
@@ -91,7 +99,7 @@ void *find_so_base(const char *soname, char *path, int path_size) {
 
     while (fd != NULL && fgets(line, sizeof(line), fd) != NULL) {
         //检查了下，该项特点是会具有执行权限;
-        if (soname == NULL || (strstr(line, soname) && strstr(line,"xp"))) {
+        if (soname == NULL || (strstr(line,"xp") && is_line_end_with_so(line, soname))) {
             if (path) {
                 substring(line,'/',path,path_size);
             }
@@ -108,7 +116,6 @@ void *find_so_base(const char *soname, char *path, int path_size) {
         fclose(fd);
     }
 
-    fclose(fd);
     return base;
 }
 

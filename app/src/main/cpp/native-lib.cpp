@@ -18,7 +18,7 @@ extern "C"
 JNIEXPORT jint JNICALL
 Java_com_mingyuans_hook_MainActivity_doElfHookByLinkView(JNIEnv *env, jobject instance) {
     struct hostent	*(*system_gethostbyname)(const char *) = NULL;
-    uint  result = elfhook_s("native-lib", "gethostbyname", (void *) my_gethostbyname,
+    uint  result = elfhook_s("libnative-lib.so", "gethostbyname", (void *) my_gethostbyname,
                                (void **) &system_gethostbyname);
 
     print_gethostbyname();
@@ -44,7 +44,7 @@ extern "C"
 JNIEXPORT jint JNICALL
 Java_com_mingyuans_hook_MainActivity_doElfHookByExecutableView(JNIEnv *env, jobject instance) {
     struct hostent	*(*system_gethostbyname)(const char *) = NULL;
-    size_t  result = elfhook_p("native-lib", "gethostbyname", (void *) my_gethostbyname,
+    size_t  result = elfhook_p("libnative-lib.so", "gethostbyname", (void *) my_gethostbyname,
                                (void **) &system_gethostbyname);
 
     print_gethostbyname();
