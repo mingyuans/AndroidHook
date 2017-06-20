@@ -32,7 +32,7 @@ Java_com_mingyuans_hook_MainActivity_doElfHookByLinkView(JNIEnv *env, jobject in
     }
 
     if (result != 0) {
-        elfhook_stop("native-lib", result, (void **) &system_gethostbyname);
+        elfhook_stop(result, (void **) &system_gethostbyname);
     }
     print_gethostbyname();
 
