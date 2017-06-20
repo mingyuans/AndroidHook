@@ -37,9 +37,19 @@ static inline Elf32_Addr * find_symbol_offset(const char *symbol,
 
 
 uint elfhook_p(const char *so_name,const char *symbol, void *new_func_addr,void **origin_func_addr_ptr) {
+    LOGI("%s hook starting...",so_name);
     uint8_t * elf_base_address = (uint8_t *) find_so_base(so_name, NULL,0);
+    if (elf_base_address == 0) {
+        LOGE("Find %s base address failed!!!", so_name);
+        return 0;
+    }
 
     Elf32_Ehdr *endr = reinterpret_cast<Elf32_Ehdr*>(elf_base_address);
+    if ((endr->e_version != EV_CURRENT && endr->e_version != EV_NONE)
+        || (endr->e_type != ET_DYN && endr->e_type != ET_EXEC)) {
+        LOGE("Find error ehdr!!! version: %d, type: %d", endr->e_version, endr->e_type);
+        return 0;
+    }
 
     Elf32_Phdr *phdr_base = reinterpret_cast<Elf32_Phdr*>(elf_base_address + endr->e_phoff);
 
@@ -143,6 +153,10 @@ static inline Elf32_Word *find_symbol_offset(int fd,const char *symbol,
 uint elfhook_s(const char *so_name,const char *symbol, void *new_func_addr,void **origin_func_addr_ptr) {
     char so_path[256] = {0};
     uint8_t * elf_base_address = (uint8_t *) find_so_base(so_name, so_path, sizeof(so_path));
+    if (elf_base_address == 0) {
+        LOGE("Find %s base address failed!!!", so_name);
+        return 0;
+    }
 
     //section 信息需要从 SO 文件中读取，因为该链接视图仅在 编译链接阶段有用，在执行中无用，
     //因此加载到内存后不一定有 section 段;

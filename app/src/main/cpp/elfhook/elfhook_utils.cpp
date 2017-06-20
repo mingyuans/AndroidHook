@@ -89,7 +89,7 @@ void *find_so_base(const char *soname, char *path, int path_size) {
     char line[256];
     void *base = 0;
 
-    while (fgets(line, sizeof(line), fd) != NULL) {
+    while (fd != NULL && fgets(line, sizeof(line), fd) != NULL) {
         //检查了下，该项特点是会具有执行权限;
         if (soname == NULL || (strstr(line, soname) && strstr(line,"xp"))) {
             if (path) {
@@ -100,6 +100,12 @@ void *find_so_base(const char *soname, char *path, int path_size) {
             base = (void *) strtoul(line, NULL, 16);
             break;
         }
+    }
+
+    if (fd == NULL) {
+        LOGW("Process maps open failed! %d", errno);
+    } else {
+        fclose(fd);
     }
 
     fclose(fd);
